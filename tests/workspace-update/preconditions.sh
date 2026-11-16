@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Checks that workspace-update-ansible and workspace-update-dotfiles run their
-# step only for a push to main. Dry runs execute no command, so nothing is
-# applied. Usage: tests/workspace-update/preconditions.sh
+# Checks that the workspace-update DAGs run their step only for a push to
+# main. Dry runs execute no command, so nothing is applied. Usage: tests/workspace-update/preconditions.sh
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -31,8 +30,11 @@ expect workspace-update-ansible ansible-sync refs/tags/1.0.0 skipped
 expect workspace-update-dotfiles chezmoi-update refs/heads/main succeeded
 expect workspace-update-dotfiles chezmoi-update refs/heads/feat/x skipped
 expect workspace-update-dotfiles chezmoi-update refs/tags/1.0.0 skipped
+expect workspace-update-workflows pull-main refs/heads/main succeeded
+expect workspace-update-workflows pull-main refs/heads/workspace/toolchain skipped
+expect workspace-update-workflows pull-main refs/tags/1.0.0 skipped
 
-if [ "$failures" -ne 0 ] || [ "$checks" -ne 6 ]; then
+if [ "$failures" -ne 0 ] || [ "$checks" -ne 9 ]; then
     echo "FAILED: $failures of $checks checks" >&2
     exit 1
 fi

@@ -1,0 +1,44 @@
+# Fast-forwards /workflows/main, the shared sub-dags and scripts every workspace
+# loads, after a push to the main branch of the workflows repository.
+#
+# Trowel enqueues it for every push to wyrd-company/workflows (see
+# workspace-ansible's templates/etc/trowel/config.yml.j2), with the push's ref
+# and head commit as REF and SHA. Push subjects carry no branch, so the step's
+# precondition skips pushes to any other branch, the workspace branches included.
+# workspace-ansible only provisions this checkout; nothing else pulls it.
+description: Fast-forward /workflows/main after a push to main of the workflows repository
+
+# Shared with the other workspace-update DAGs, so updates apply one at a time.
+queue: workspace-update
+# Queue every push: "latest" could drop a queued push to main for a later push to
+# another branch, which the precondition then skips.
+overlap_policy: all
+
+params:
+  - REF: refs/heads/main
+  - SHA: ""
+
+timeout_sec: 300
+
+steps:
+  - name: pull-main
+    # On the step, not the DAG: a DAG-level miss marks the run aborted
+    preconditions:
+      - condition: "${REF}"
+        expected: "refs/heads/main"
+    working_dir: /workflows/main
+    # Fast-forward only, and only a clean checkout of main, so local work is
+    # never merged or rebased; fail instead, so the skipped update shows.
+    script: |
+      set -eu
+      branch=$(git symbolic-ref --quiet --short HEAD || true)
+      if [ "$branch" != main ]; then
+        echo "workspace-update-workflows: /workflows/main is on '${branch:-a detached head}', not main; not updating" >&2
+        exit 1
+      fi
+      if [ -n "$(git status --porcelain)" ]; then
+        echo "workspace-update-workflows: /workflows/main has uncommitted changes; not updating" >&2
+        exit 1
+      fi
+      git pull --ff-only
+      git log -1 --oneline
