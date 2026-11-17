@@ -7,8 +7,9 @@
 # branch, so the step's precondition skips pushes to any other branch.
 #
 # `chezmoi update` pulls the dotfiles and applies them. Every apply runs the
-# dotfiles' run_after_update-skills.sh, which fast-forwards the skills clone
-# (~/.agents/skills) when it is a clean checkout of main, so a skills push needs
+# dotfiles' run_after_update-skills.sh, whose `skills sync` fast-forwards the
+# skills clone (~/.local/share/skills/base) when it is a clean checkout of main,
+# builds the overlays and publishes the harness views. A skills push needs
 # nothing more.
 description: Pull and apply the dotfiles (chezmoi update) after a push to main of workspace-dotfiles or skills
 
